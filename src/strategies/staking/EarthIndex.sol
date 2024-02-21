@@ -8,13 +8,15 @@ import "@openzeppelin/security/ReentrancyGuard.sol";
 
 import "@pancakeswap-v2-exchange-protocol/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-v2-core/interfaces/IPancakePair.sol";
-import "./interfaces/ICommonStrat.sol";
-import "./interfaces/IMasterChef.sol";
 import "./interfaces/IPancakeFactory.sol";
+import "./interfaces/ICommonStrat.sol";
+
 import "../common/AbstractStrategy.sol";
 import "../utils/StringUtils.sol";
 
 struct EarthIndexParams{
+   address depositToken;
+   address factory;
    address tokenA;
    uint256 tokenAallo;
    address tokenB;
@@ -39,6 +41,9 @@ struct EarthIndexParams{
 
 contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     using SafeERC20 for IERC20;
+
+    address public depositToken;
+    address public factory;
     
     address public tokenA;
     address public tokenB;
@@ -61,7 +66,10 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     CommonAddresses memory _commonAddresses,
     EarthFeesParams memory _EarthFeesParams,
     EarthIndexParams memory _EarthIndexParams
-    ){
+    )AbstractStrategy(_commonAddresses){
+        depositToken = _EarthIndexParams.depositToken;
+        factory = _EarthIndexParams.factory;
+
         tokenA = _EarthIndexParams.tokenA;
         allocations[tokenA] = _EarthIndexParams.tokenAallo;
         tokenB = _EarthIndexParams.tokenB;
@@ -79,6 +87,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         feeDecimals = _EarthFeesParams.feeDecimals;
         withdrawFee = _EarthFeesParams.withdrawFee;
         withdrawFeeDecimals = _EarthFeesParams.withdrawFeeDecimals;   
+        _giveAllowances();
     }
 
     function deposit() public whenNotPaused nonReentrant {
@@ -86,9 +95,58 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         _deposit();
     }
 
-    function withdraw(uint256 _amount) public nonReentrant {
-        onlyVault(); 
+    function _deposit() internal{
+        uint256 balance = IERC20(depositToken).balanceOf(address(this));
+        uint256 depoA = (balance * (allocations[tokenA]))/100;
+        _swapV2(depositToken,tokenA,depoA);
+        uint256 depoB = (balance * (allocations[tokenB]))/100;
+        _swapV2(depositToken,tokenB,depoB);
+        uint256 depoC = (balance * (allocations[tokenC]))/100;
+        _swapV2(depositToken,tokenC,depoC);
+        uint256 depoD = (balance * (allocations[tokenD]))/100;
+        _swapV2(depositToken,tokenD,depoD);
     }
+
+    function withdraw(uint256 _amount) public nonReentrant {
+        onlyVault();
+        clossAll();
+        //calculation for withdraw amount
+        uint256 crB = IERC20(depositToken).balanceOf(address(this));
+        if(crB > _amount){
+            IERC20(depositToken).transfer(vault,_amount);
+            _deposit();
+        } 
+        IERC20(depositToken).transfer(vault,_amount);
+    }
+
+
+    function clossAll() internal {
+        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
+        _swapV2(tokenA,depositToken,balanceA);
+        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
+        _swapV2(tokenB,depositToken,balanceB);
+        uint256 balanceC = IERC20(tokenC).balanceOf(address(this));
+        _swapV2(tokenC,depositToken,balanceC);
+        uint256 balanceD = IERC20(tokenD).balanceOf(address(this));
+        _swapV2(tokenD,depositToken,balanceD);
+    }
+
+
+
+     function _swapV2(address token0, address token1, uint256 _amount) internal {
+        address[] memory path = new address[](2);
+        path[0] = token0;
+        path[1] = token1;
+
+        IPancakeRouter02(router).swapExactTokensForTokens(
+            _amount,
+            0,
+            path,
+            address(this),
+            block.timestamp * 2
+        );
+    }
+
 
     function retireStrat() external {
         onlyVault();
@@ -96,7 +154,17 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
     function harvest() public {}
 
-    function balanceOf() public view returns(uint256){}
+    function balanceOf() public view returns(uint256){
+        uint256 balA = IERC20(tokenA).balanceOf(address(this));
+        uint256 balB = IERC20(tokenB).balanceOf(address(this));
+        uint256 balC = IERC20(tokenC).balanceOf(address(this));
+        uint256 balD = IERC20(tokenD).balanceOf(address(this));
+        balA = tokenAToTokenBConversion(tokenA,depositToken,balA);
+        balB = tokenAToTokenBConversion(tokenB,depositToken,balB);
+        balC = tokenAToTokenBConversion(tokenC,depositToken,balC);
+        balD = tokenAToTokenBConversion(tokenD,depositToken,balD);
+       return balA + balB + balC + balD;
+    }
 
     function inCaseTokensGetStuck(address _token) external {
         onlyManager();
@@ -119,6 +187,30 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         IERC20(_token).safeTransfer(partner, partnerFeeAmount);
     }
 
+    function tokenAToTokenBConversion(
+        address tokenX,
+        address tokenY,
+        uint256 amount
+    ) public view returns (uint256) {
+        if (tokenX == tokenY) {
+            return amount;
+        }
+        address lpAddress = IPancakeFactory(factory).getPair(tokenX, tokenY);
+        (uint112 _reserve0, uint112 _reserve1, ) = IPancakePair(lpAddress)
+            .getReserves();
+        (address token0, address token1) = arrangeTokens(tokenX, tokenY);
+        return
+            token0 == tokenX
+                ? ((amount * _reserve1) / _reserve0)
+                : ((amount * _reserve0) / _reserve1);
+    }
+
+       function arrangeTokens(
+        address tokenX,
+        address tokenY
+    ) public pure returns (address, address) {
+        return tokenX < tokenY ? (tokenX, tokenY) : (tokenY, tokenX);
+    }
 
      function panic() public {
         onlyManager();
@@ -142,11 +234,19 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     }
 
     function _giveAllowances() internal virtual {
-
+    IERC20(depositToken).approve(router,type(uint256).max);
+    IERC20(tokenA).approve(router,type(uint256).max);
+    IERC20(tokenB).approve(router,type(uint256).max);
+    IERC20(tokenC).approve(router,type(uint256).max);
+    IERC20(tokenD).approve(router,type(uint256).max);
     }
 
     function _removeAllowances() internal virtual {
-       
+    IERC20(depositToken).approve(router,0);
+    IERC20(tokenA).approve(router,0);
+    IERC20(tokenB).approve(router,0);
+    IERC20(tokenC).approve(router,0);
+    IERC20(tokenD).approve(router,0);
     }
 
 

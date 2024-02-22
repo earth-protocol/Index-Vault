@@ -25,6 +25,7 @@ struct EarthIndexParams{
    uint256 tokenCallo;
 //    address tokenD;
 //    uint256 tokenDallo;
+   uint256 minDeposit;
 }
 
 
@@ -49,6 +50,8 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     address public tokenB;
     address public tokenC;
     address public tokenD;
+
+    uint256 public minDeposit;
 
   mapping (address => uint) public allocations;
 
@@ -97,7 +100,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
     function _deposit() internal{
         uint256 balance = IERC20(depositToken).balanceOf(address(this));
-        if(balance > 100e6){
+        if(balance > minDeposit){
         uint256 depoA = (balance * (allocations[tokenA]))/100;
         _swapV2(depositToken,tokenA,depoA);
         uint256 depoB = (balance * (allocations[tokenB]))/100;

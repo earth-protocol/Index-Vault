@@ -28,6 +28,7 @@ contract EarthT is Test{
     uint256 public tokenCallo=15;
     address public tokenD=0x989686C23206b121DcFA70C0042B8Fc29d7770a7;
     uint256 public tokenDallo=15;
+    uint256 public minDeposit=100e6;
 
 
 
@@ -74,9 +75,10 @@ contract EarthT is Test{
             tokenB,
             tokenBallo,
             tokenC,
-            tokenCallo
+            tokenCallo,
             // tokenD,
             // tokenDallo
+            minDeposit
         );
 
 

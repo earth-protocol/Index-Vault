@@ -97,6 +97,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
     function _deposit() internal{
         uint256 balance = IERC20(depositToken).balanceOf(address(this));
+        if(balance > 100e6){
         uint256 depoA = (balance * (allocations[tokenA]))/100;
         _swapV2(depositToken,tokenA,depoA);
         uint256 depoB = (balance * (allocations[tokenB]))/100;
@@ -105,11 +106,16 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         _swapV2(depositToken,tokenC,depoC);
         // uint256 depoD = (balance * (allocations[tokenD]))/100;
         // _swapV2(depositToken,tokenD,depoD);
+        }
     }
 
     function withdraw(uint256 _amount) public nonReentrant {
         onlyVault();
         clossAll();
+        uint256 balanceD = IERC20(depositToken).balanceOf(address(this));
+        if(_amount > balanceD){
+            _amount = balanceD;
+        }
         IERC20(depositToken).safeTransfer(vault,_amount);
         _deposit();
     }
@@ -117,6 +123,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
     function clossAll() internal {
         uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
+        if(balanceA >0){
         _swapV2(tokenA,depositToken,balanceA);
         uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
         _swapV2(tokenB,depositToken,balanceB);
@@ -124,6 +131,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         _swapV2(tokenC,depositToken,balanceC);
         // uint256 balanceD = IERC20(tokenD).balanceOf(address(this));
         // _swapV2(tokenD,depositToken,balanceD);
+        }
     }
 
 

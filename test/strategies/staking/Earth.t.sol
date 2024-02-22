@@ -118,14 +118,15 @@ contract EarthT is Test{
 
      function test_withdraw() public {
         vm.startPrank(user);
-        uint256 depo = 10e6;
+        uint256 depo = 101e6;
         bool isW = IStrategy(strat).paused();
         console.log(isW);
         IERC20(token).approve(vault,10000e6);
-        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,user);
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo*2,user);
         uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
         console.log("totalAsset after deposit",dp);
-        RiveraAutoCompoundingVaultV2Public(vault).withdraw(depo/2,user,user);
+         depo =RiveraAutoCompoundingVaultV2Public(vault).maxWithdraw(user);
+        RiveraAutoCompoundingVaultV2Public(vault).withdraw(depo,user,user);
         dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
         console.log("totalAsset after withdraw",dp);
         console.log("balance is",IERC20(vault).balanceOf(user));

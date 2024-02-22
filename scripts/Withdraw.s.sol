@@ -9,9 +9,9 @@ import "../src/strategies/common/interfaces/IStrategy.sol";
 
 
 contract Withdraw is Script{
-    address vault = 0xcc08992d3E52FdfA79826E442910865E663fd710;
+    address vault = 0x7481078908B7B5E8d2cb4b183969A2BF3E0F2Fc1;
     address token = 0xBC3FCA55ABA295605830E25c7F5Ba9C58Ce0167C;
-    address strat=0x935EE143cE346e64ba1b89f5DBDBbF414655FB67;
+    address strat=0x7CF1A7ff462e82634Fca2Fd07042eE982Ead2c61;
 
     function setUp() public {}
 
@@ -22,10 +22,10 @@ contract Withdraw is Script{
 
         vm.startBroadcast(privateKey);
              
-        uint256 depo = 5e6;
+        uint256 depo =RiveraAutoCompoundingVaultV2Public(vault).maxWithdraw(acc);
         bool isW = IStrategy(strat).paused();
         console.log(isW);
-        RiveraAutoCompoundingVaultV2Public(vault).withdraw(depo/2,acc,acc);
+        RiveraAutoCompoundingVaultV2Public(vault).withdraw((depo*99/100),acc,acc);
         uint256 tB = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
         console.log("total Assets",tB);
         console.log("balance is",IERC20(vault).balanceOf(acc));

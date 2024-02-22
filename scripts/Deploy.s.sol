@@ -15,11 +15,11 @@ contract Deploy is Script {
 
     address public depositToken=0xBC3FCA55ABA295605830E25c7F5Ba9C58Ce0167C;
     address public tokenA=0xa38e9508368a823249b7eF291156F93CDcB8E66E;
-    uint256 public tokenAallo=40;
+    uint256 public tokenAallo=50;
     address public tokenB=0x98308Df644D91B78a797493C184dF7A731ecb530;
     uint256 public tokenBallo=30;
     address public tokenC=0xC23470d6A96BB96461789b032905e7CE8634d163;
-    uint256 public tokenCallo=15;
+    uint256 public tokenCallo=20;
     address public tokenD=0x989686C23206b121DcFA70C0042B8Fc29d7770a7;
     uint256 public tokenDallo=15;
 

@@ -23,8 +23,8 @@ struct EarthIndexParams{
    uint256 tokenBallo;
    address tokenC;
    uint256 tokenCallo;
-   address tokenD;
-   uint256 tokenDallo;
+//    address tokenD;
+//    uint256 tokenDallo;
 }
 
 
@@ -76,8 +76,8 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         allocations[tokenB] = _EarthIndexParams.tokenBallo;
         tokenC = _EarthIndexParams.tokenC;
         allocations[tokenC] = _EarthIndexParams.tokenCallo;
-        tokenD = _EarthIndexParams.tokenD;
-        allocations[tokenD] = _EarthIndexParams.tokenDallo;
+        // tokenD = _EarthIndexParams.tokenD;
+        // allocations[tokenD] = _EarthIndexParams.tokenDallo;
 
         protocol = _EarthFeesParams.protocol;
         partner = _EarthFeesParams.partner;
@@ -103,20 +103,15 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         _swapV2(depositToken,tokenB,depoB);
         uint256 depoC = (balance * (allocations[tokenC]))/100;
         _swapV2(depositToken,tokenC,depoC);
-        uint256 depoD = (balance * (allocations[tokenD]))/100;
-        _swapV2(depositToken,tokenD,depoD);
+        // uint256 depoD = (balance * (allocations[tokenD]))/100;
+        // _swapV2(depositToken,tokenD,depoD);
     }
 
     function withdraw(uint256 _amount) public nonReentrant {
         onlyVault();
         clossAll();
-        //calculation for withdraw amount
-        uint256 crB = IERC20(depositToken).balanceOf(address(this));
-        if(crB > _amount){
-            IERC20(depositToken).transfer(vault,_amount);
-            _deposit();
-        } 
-        IERC20(depositToken).transfer(vault,_amount);
+        IERC20(depositToken).safeTransfer(vault,_amount);
+        _deposit();
     }
 
 
@@ -127,8 +122,8 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         _swapV2(tokenB,depositToken,balanceB);
         uint256 balanceC = IERC20(tokenC).balanceOf(address(this));
         _swapV2(tokenC,depositToken,balanceC);
-        uint256 balanceD = IERC20(tokenD).balanceOf(address(this));
-        _swapV2(tokenD,depositToken,balanceD);
+        // uint256 balanceD = IERC20(tokenD).balanceOf(address(this));
+        // _swapV2(tokenD,depositToken,balanceD);
     }
 
 
@@ -155,15 +150,16 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     function harvest() public {}
 
     function balanceOf() public view returns(uint256){
+        uint256 balT = IERC20(depositToken).balanceOf(address(this));
         uint256 balA = IERC20(tokenA).balanceOf(address(this));
         uint256 balB = IERC20(tokenB).balanceOf(address(this));
         uint256 balC = IERC20(tokenC).balanceOf(address(this));
-        uint256 balD = IERC20(tokenD).balanceOf(address(this));
+        //uint256 balD = IERC20(tokenD).balanceOf(address(this));
         balA = tokenAToTokenBConversion(tokenA,depositToken,balA);
         balB = tokenAToTokenBConversion(tokenB,depositToken,balB);
         balC = tokenAToTokenBConversion(tokenC,depositToken,balC);
-        balD = tokenAToTokenBConversion(tokenD,depositToken,balD);
-       return balA + balB + balC + balD;
+       // balD = tokenAToTokenBConversion(tokenD,depositToken,balD);
+       return balA + balB + balC+balT;
     }
 
     function inCaseTokensGetStuck(address _token) external {
@@ -238,7 +234,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     IERC20(tokenA).approve(router,type(uint256).max);
     IERC20(tokenB).approve(router,type(uint256).max);
     IERC20(tokenC).approve(router,type(uint256).max);
-    IERC20(tokenD).approve(router,type(uint256).max);
+    //IERC20(tokenD).approve(router,type(uint256).max);
     }
 
     function _removeAllowances() internal virtual {
@@ -246,7 +242,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     IERC20(tokenA).approve(router,0);
     IERC20(tokenB).approve(router,0);
     IERC20(tokenC).approve(router,0);
-    IERC20(tokenD).approve(router,0);
+    //IERC20(tokenD).approve(router,0);
     }
 
 

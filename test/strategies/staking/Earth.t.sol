@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
+import "forge-std/Test.sol";
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
-import "../src/strategies/common/AbstractStrategy.sol";
-import "../src/vaults/RiveraAutoCompoundingVaultV2Public.sol";
-import "../src/strategies/staking/EarthIndex.sol";
-import "../src/strategies/common/interfaces/IStrategy.sol";
+import "../../../src/vaults/RiveraAutoCompoundingVaultV2Public.sol";
+import "../../../src/strategies/staking/EarthIndex.sol";
+import "../../../src/strategies/common/interfaces/IStrategy.sol";
 
-contract Deploy is Script {
-    
+contract EarthT is Test{
+    address public vault = 0xcc08992d3E52FdfA79826E442910865E663fd710;
+    address public token = 0xBC3FCA55ABA295605830E25c7F5Ba9C58Ce0167C;
+    address public strat = 0x935EE143cE346e64ba1b89f5DBDBbF414655FB67;
+
+    address public user = 0xFaBcc4b22fFEa25D01AC23c5d225D7B27CB1B6B8;
+
+
     address public router =0xdd9501781fa1c77584B0c55e0e68607AF3c35840;
     address public factory=0xE63D69fFdB211dD747ad8970544043fADE7d20f5;
 
@@ -39,16 +45,15 @@ contract Deploy is Script {
     
     uint256 stratUpdateDelay = 172800;
     uint256 vaultTvlCap = 10000e18;
-     function setUp() public {}
 
-     function run() public {
-        uint privateKey = vm.envUint("PRIVATE_KEY");
+    function setUp() public {
+         uint privateKey = vm.envUint("PRIVATE_KEY");
         address acc = vm.addr(privateKey);
         console.log("Account", acc);
 
-        vm.startBroadcast(privateKey);
+        vm.startPrank(acc);
 
-          RiveraAutoCompoundingVaultV2Public vault = new RiveraAutoCompoundingVaultV2Public(
+          RiveraAutoCompoundingVaultV2Public vaultI = new RiveraAutoCompoundingVaultV2Public(
                 depositToken,
                 "Earth-USDC-Index-Vault",
                 "Earth-USDC-Index-Vault",
@@ -56,7 +61,7 @@ contract Deploy is Script {
                 vaultTvlCap
             );
         CommonAddresses memory _commonAddresses = CommonAddresses(
-            address(vault),
+            address(vaultI),
             router
         );
 
@@ -86,17 +91,50 @@ contract Deploy is Script {
             withdrawFeeDecimals
             );
 
-            EarthIndex strat = new EarthIndex(
+            EarthIndex stratI = new EarthIndex(
                 _commonAddresses,
                 feesParams,
                 _EarthParams
             );
 
-             vault.init(IStrategy(address(strat)));
-            console.log("vault address is",address(vault));
-            console.log("address is",address(strat));
+            vaultI.init(IStrategy(address(stratI)));
+            vault = address(vaultI);
+            strat = address(stratI);
+            vm.stopPrank();
      }
-}
-//  anvil --fork-url https://sepolia.blast.io --mnemonic "disorder pretty oblige witness close face food stumble name material couch planet"
 
-// forge script scripts/Deploy.s.sol:Deploy --rpc-url http://127.0.0.1:8545/ --broadcast -vvv --legacy --slow
+
+    //  function test_deposit() public {
+    //     vm.startPrank(user);
+    //     uint256 depo = 10e6;
+    //     IERC20(token).approve(vault,10000e6);
+    //     bool isW = IStrategy(strat).paused();
+    //     console.log(isW);
+    //     RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,user);
+    //     console.log("balance is",IERC20(vault).balanceOf(user));
+    //     vm.stopPrank();
+    //  }
+
+
+     function test_withdraw() public {
+        vm.startPrank(user);
+        uint256 depo = 10e6;
+        bool isW = IStrategy(strat).paused();
+        console.log(isW);
+        IERC20(token).approve(vault,10000e6);
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,user);
+        uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        console.log("totalAsset after deposit",dp);
+        RiveraAutoCompoundingVaultV2Public(vault).withdraw(depo/2,user,user);
+        dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        console.log("totalAsset after withdraw",dp);
+        console.log("balance is",IERC20(vault).balanceOf(user));
+        vm.stopPrank();
+     }
+    }
+
+
+
+
+
+//forge test --match-path test/strategies/staking/Earth.t.sol --fork-url https://sepolia.blast.io -vvvv

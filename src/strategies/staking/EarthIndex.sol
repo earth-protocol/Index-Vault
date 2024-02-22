@@ -137,6 +137,12 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         }
     }
 
+    function rebalance() external {
+        onlyManager();
+        clossAll();
+        _deposit();
+    }
+
 
 
      function _swapV2(address token0, address token1, uint256 _amount) internal {

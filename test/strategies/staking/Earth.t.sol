@@ -127,6 +127,7 @@ contract EarthT is Test{
         RiveraAutoCompoundingVaultV2Public(vault).deposit(depo*2,user);
         uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
         console.log("totalAsset after deposit",dp);
+        console.log("balance is",IERC20(vault).balanceOf(user));
          depo =RiveraAutoCompoundingVaultV2Public(vault).maxWithdraw(user);
         RiveraAutoCompoundingVaultV2Public(vault).withdraw((depo*99/100),user,user);
         dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();

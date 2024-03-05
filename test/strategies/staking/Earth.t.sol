@@ -29,8 +29,8 @@ contract EarthT is Test{
     address public tokenB=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;//eth weth
     address public aTokenB=0x030bA81f1c18d280636F32af80b9AAd02Cf0854e;
     uint256 public tokenBallo=30;
-    address public tokenC=0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9;//eth aave
-    address public aTokenC=0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B;
+    address public tokenC=0x6B175474E89094C44Da98b954EedeAC495271d0F;//eth aave
+    address public aTokenC=0x028171bCA77440897B824Ca71D1c56caC55b68A3;
     uint256 public tokenCallo=20;
     address public tokenD=0x989686C23206b121DcFA70C0042B8Fc29d7770a7;
     uint256 public tokenDallo=15;
@@ -122,24 +122,24 @@ contract EarthT is Test{
      }
 
 
-     function test_deposit() public {
-        vm.startPrank(user);
-        uint256 depo = 300e6;
-        IERC20(token).approve(vault,10000e6);
-        bool isW = IStrategy(strat).paused();
-        console.log(isW);
-        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,user);
-        emit log_named_uint ("totalAsset ",EarthIndex(strat).balanceOf());
-        emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfStakedA());
-        emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfStakedB());
-        emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfStakedC());
-        vm.stopPrank();
-     }
+    //  function test_deposit() public {
+    //     vm.startPrank(user);
+    //     uint256 depo = 300e6;
+    //     IERC20(token).approve(vault,10000e6);
+    //     bool isW = IStrategy(strat).paused();
+    //     console.log(isW);
+    //     RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,user);
+    //     // emit log_named_uint ("totalAsset ",EarthIndex(strat).balanceOf());
+    //     // emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfStakedA());
+    //     // emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfStakedB());
+    //     // emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfStakedC());
+    //     vm.stopPrank();
+    //  }
 
 
     //  function test_withdraw() public {
     //     vm.startPrank(user);
-    //     uint256 depo = 100e6;
+    //     uint256 depo = 300e6;
     //     bool isW = IStrategy(strat).paused();
     //     console.log(isW);
     //     IERC20(token).approve(vault,10000e6);
@@ -152,8 +152,24 @@ contract EarthT is Test{
     //     dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
     //     emit log_named_uint ("totalAsset after withdraw",dp);
     //     emit log_named_uint("balance is",IERC20(vault).balanceOf(user));
+    //     emit log_named_uint ("totalAsset ",EarthIndex(strat).balanceOf());
+    //     emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfStakedA());
+    //     emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfStakedB());
+    //     emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfStakedC());
     //     vm.stopPrank();
     //  }
+
+      function test_Rebalance() public {
+        vm.startPrank(user);
+        uint256 depo = 300e6;
+        bool isW = IStrategy(strat).paused();
+        console.log(isW);
+        IERC20(token).approve(vault,10000e6);
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo*2,user);
+        uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        EarthIndex(strat).rebalance();
+        vm.stopPrank();
+     }
     }
 
 

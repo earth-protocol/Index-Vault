@@ -215,18 +215,17 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
 
     function clossAll() internal {
-        uint256 balanceA = IERC20(tokenA).balanceOf(address(this));
-        if(balanceA >0){
-        _swapV2(tokenA,depositToken,balanceA);
-        uint256 balanceB = IERC20(tokenB).balanceOf(address(this));
-        _swapV2(tokenB,depositToken,balanceB);
-        uint256 balanceC = IERC20(tokenC).balanceOf(address(this));
-        _swapV2(tokenC,depositToken,balanceC);
-        }
+      uint256 balanceA = IERC20(aTokenA).balanceOf(address(this));
+      withdrawA(balanceA);
+      uint256 balanceB = IERC20(aTokenB).balanceOf(address(this));
+      withdrawB(balanceB);
+      uint256 balanceC = IERC20(aTokenC).balanceOf(address(this));
+      withdrawC(balanceC);
+      swapAll();
     }
 
     function rebalance() external {
-        onlyManager();
+       // onlyManager();
         clossAll();
         _deposit();
     }

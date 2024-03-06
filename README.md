@@ -14,6 +14,12 @@ The deposit function performs the following steps
 
 3. **Asset Swapping:** Calls the `_swapV2` function to exchange a portion of the deposit tokens for each asset according to their allocated percentages. This step ensures that the deposit tokens are distributed as intended across the specified assets.
 
+## Earn
+
+The Earn function performs the following steps
+
+1. Earn function calls the EarnTokenA,EarnTokenB,EarnTokenC funtions and deposit all three tokens in aave to earn interest
+
 ## Withdraw
 
 The withdraw function performs the following steps

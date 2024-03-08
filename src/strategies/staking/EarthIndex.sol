@@ -8,6 +8,7 @@ import "@openzeppelin/security/ReentrancyGuard.sol";
 
 import "@pancakeswap-v2-exchange-protocol/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-v2-core/interfaces/IPancakePair.sol";
+import "./interfaces/IV3SwapRouter.sol";
 import "./interfaces/IPancakeFactory.sol";
 import "./interfaces/ICommonStrat.sol";
 import "./interfaces/ILendingPool.sol";
@@ -243,6 +244,25 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
             path,
             address(this),
             block.timestamp * 2
+        );
+    }
+
+     function _swapV3In(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint24 fee
+    ) internal returns (uint256 amountOut) {
+        amountOut = IV3SwapRouter(router).exactInputSingle(
+            IV3SwapRouter.ExactInputSingleParams(
+                tokenIn,
+                tokenOut,
+                fee,
+                address(this),
+                amountIn,
+                0,
+                0
+            )
         );
     }
 

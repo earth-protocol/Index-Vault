@@ -226,7 +226,7 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     }
 
     function rebalance() external {
-       // onlyManager();
+        onlyManager();
         clossAll();
         _deposit();
     }

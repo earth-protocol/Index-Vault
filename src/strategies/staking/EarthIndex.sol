@@ -158,7 +158,6 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         uint256 balanceD = IERC20(depositToken).balanceOf(address(this));
         if(_amount > balanceD){
         withdrawRatio(_amount);
-        swapAll();
         balanceD = IERC20(depositToken).balanceOf(address(this));
         if(balanceD < _amount){
             _amount = balanceD;
@@ -178,12 +177,12 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
 
     function withdrawRatio(uint256 _amount) internal {
-      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,depositFeed,tokenA,tokenAFeed,(_amount*allocations[tokenA])/100);
-      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,depositFeed,tokenB,tokenBFeed,(_amount*allocations[tokenB])/100);
-      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,depositFeed,tokenC,tokenCFeed,(_amount*allocations[tokenC])/100);
-      _swapV3In(depositToken,tokenA,withdrawTokenA,tokenAFees);
-      _swapV3In(depositToken,tokenB,withdrawTokenB,tokenBFees);
-      _swapV3In(depositToken,tokenC,withdrawTokenC,tokenCFees);
+      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,depositFeed,tokenA,tokenAFeed,(_amount*(balanceOfA() * 100/balanceOf()))/100);
+      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,depositFeed,tokenB,tokenBFeed,(_amount*(balanceOfB()* 100/balanceOf()))/100);
+      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,depositFeed,tokenC,tokenCFeed,(_amount*(balanceOfC()* 100/balanceOf()))/100);
+      _swapV3In(tokenA,depositToken,withdrawTokenA,tokenAFees);
+      _swapV3In(tokenB,depositToken,withdrawTokenB,tokenBFees);
+      _swapV3In(tokenC,depositToken,withdrawTokenC,tokenCFees);
     }
 
 

@@ -32,6 +32,9 @@ contract EarthT is Test{
     address public tokenD=0x989686C23206b121DcFA70C0042B8Fc29d7770a7;
     uint256 public tokenDallo=15;
     uint256 public minDeposit=100e6;
+    
+    address mathLib=0x19F51834817708F2da9Ac7D0cc3eAFF0b6Ed17D7;
+    address tickLib=0x642e8455F280d1F5f252DFFE0A264810A80A7DF7;
 
 
     address public depositFeed =0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3;
@@ -110,11 +113,8 @@ contract EarthT is Test{
             );
 
             OracleParams memory oracleParam = OracleParams(
-            depositFeed,
-            tokenAFeed,
-            tokenBFeed,
-            tokenCFeed,
-            oracleDeci
+            tickLib,
+            mathLib
             );
 
             SwapFees memory feesP = SwapFees(
@@ -142,7 +142,7 @@ contract EarthT is Test{
 
      function test_deposit() public {
         vm.startPrank(user);
-        uint256 depo = 3000e6;
+        uint256 depo = 200e6;
         IERC20(token).approve(vault,10000e6);
         bool isW = IStrategy(strat).paused();
         console.log(isW);
@@ -171,9 +171,9 @@ contract EarthT is Test{
         emit log_named_uint ("totalAsset after withdraw",dp);
         emit log_named_uint("balance is",IERC20(vault).balanceOf(user));
         emit log_named_uint ("totalAsset ",EarthIndex(strat).balanceOf());
-        // emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfStakedA());
-        // emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfStakedB());
-        // emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfStakedC());
+        emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfA());
+        emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfB());
+        emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfC());
         vm.stopPrank();
      }
 
@@ -194,4 +194,4 @@ contract EarthT is Test{
 
 
 
-//forge test --match-path test/strategies/staking/Earth.t.sol --fork-url https://arbitrum.llamarpc.com -vvvv
+//forge test --match-path test/strategies/staking/Earth.t.sol --fork-url https://1rpc.io/arb -vvvv

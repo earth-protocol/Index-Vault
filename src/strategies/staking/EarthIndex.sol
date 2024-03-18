@@ -9,10 +9,15 @@ import "@openzeppelin/security/ReentrancyGuard.sol";
 
 import "@pancakeswap-v2-exchange-protocol/interfaces/IPancakeRouter02.sol";
 import "@pancakeswap-v2-core/interfaces/IPancakePair.sol";
+import "./interfaces/IUniswapV3Factory.sol";
+import "./interfaces/IUniswapV3PoolState.sol";
 import "./interfaces/IV3SwapRouter.sol";
 import "./interfaces/IPancakeFactory.sol";
 import "./interfaces/ICommonStrat.sol";
 import "./interfaces/AggregatorV3Interface.sol";
+
+import "./libraries/IFullMath.sol";
+import "./libraries/ITickMath.sol";
 
 import "../common/AbstractStrategy.sol";
 import "../utils/StringUtils.sol";
@@ -43,11 +48,8 @@ struct EarthIndexParams{
 }
 
 struct OracleParams{
-    address depositFeed;
-    address tokenAFeed;
-    address tokenBFeed;
-    address tokenCFeed;
-    uint256 oracledDeci;
+    address tickMath;
+    address fullMath;
 }
 
 struct SwapFees{
@@ -81,12 +83,10 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
     uint256 public withdrawFee;
     uint256 public withdrawFeeDecimals;
 
-    //Oracle Parameters
-    address public depositFeed;
-    address public tokenAFeed;
-    address public tokenBFeed;
-    address public tokenCFeed;
-    uint256 public oracleDeci;
+
+    // math lib
+    address public fullMath;
+    address public tickMath;
 
     //swap fees 
     uint24 public tokenAFees;
@@ -121,11 +121,8 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
         withdrawFee = _EarthFeesParams.withdrawFee;
         withdrawFeeDecimals = _EarthFeesParams.withdrawFeeDecimals;   
         
-        depositFeed = _OracleParams.depositFeed;
-        tokenAFeed = _OracleParams.tokenAFeed;
-        tokenBFeed = _OracleParams.tokenBFeed;
-        tokenCFeed = _OracleParams.tokenCFeed;
-        oracleDeci = _OracleParams.oracledDeci;
+        tickMath = _OracleParams.tickMath;
+        fullMath = _OracleParams.fullMath;
 
         tokenAFees = _SwapFees.tokenAFees;
         tokenBFees = _SwapFees.tokenBFees;
@@ -177,9 +174,9 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
 
     function withdrawRatio(uint256 _amount) internal {
-      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,depositFeed,tokenA,tokenAFeed,(_amount*(balanceOfA() * 100/balanceOf()))/100);
-      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,depositFeed,tokenB,tokenBFeed,(_amount*(balanceOfB()* 100/balanceOf()))/100);
-      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,depositFeed,tokenC,tokenCFeed,(_amount*(balanceOfC()* 100/balanceOf()))/100);
+      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,tokenA,tokenAFees,(_amount*(balanceOfA() * 100/balanceOf()))/100);
+      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,tokenB,tokenBFees,(_amount*(balanceOfB()* 100/balanceOf()))/100);
+      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,tokenC,tokenCFees,(_amount*(balanceOfC()* 100/balanceOf()))/100);
       _swapV3In(tokenA,depositToken,withdrawTokenA,tokenAFees);
       _swapV3In(tokenB,depositToken,withdrawTokenB,tokenBFees);
       _swapV3In(tokenC,depositToken,withdrawTokenC,tokenCFees);
@@ -245,18 +242,18 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
    function balanceOfA() public view returns(uint256){
         uint256 balA = IERC20(tokenA).balanceOf(address(this));
-        return tokenAToTokenBConversion(tokenA,tokenAFeed,depositToken,depositFeed,balA);  
+        return tokenAToTokenBConversion(tokenA,depositToken,tokenAFees,balA);  
    }
    
    function balanceOfB() public view returns(uint256){
         uint256 balB = IERC20(tokenB).balanceOf(address(this));
-        return tokenAToTokenBConversion(tokenB,tokenBFeed,depositToken,depositFeed,balB);
+        return tokenAToTokenBConversion(tokenB,depositToken,tokenBFees,balB);
    }
 
 
    function balanceOfC() public view returns(uint256){
         uint256 balC = IERC20(tokenC).balanceOf(address(this));
-        return tokenAToTokenBConversion(tokenC,tokenCFeed,depositToken,depositFeed,balC);
+        return tokenAToTokenBConversion(tokenC,depositToken,tokenCFees,balC);
    }
 
 
@@ -288,27 +285,36 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
     function tokenAToTokenBConversion(
         address tokenX,
-        address tokenXFeed,
         address tokenY,
-        address tokenYFeed,
+        uint24 xToyFees,
         uint256 amount
     ) public view returns (uint256) {
-        uint256 aDec = IERC20Metadata(tokenX).decimals();
-        uint256 bDec = IERC20Metadata(tokenY).decimals();
+        address uPool = IUniswapV3Factory(factory).getPool(tokenX,tokenY,xToyFees);
+        (,int24 tick,,,,,) = IUniswapV3PoolState(uPool).slot0();
+        return getQuoteAtTick(tick,uint128(amount),tokenX,tokenY);
+    }
 
-        (,int256 tokenXPrice,,,) = AggregatorV3Interface(tokenXFeed).latestRoundData();
 
-        (,int256 tokenYPrice,,,) = AggregatorV3Interface(tokenYFeed).latestRoundData();
+    function getQuoteAtTick(
+        int24 tick,
+        uint128 baseAmount,
+        address baseToken,
+        address quoteToken
+    ) public view returns (uint256 quoteAmount) {
+        uint160 sqrtRatioX96 = ITickMathLib(tickMath).getSqrtRatioAtTick(tick);
 
-        uint256 amountXinUSD = ((10 ** aDec) * (10 ** oracleDeci)) /
-            uint256(tokenXPrice); // X in 1 usd
-
-        uint256 amountYinUSD = ((10 ** bDec) * (10 ** oracleDeci)) /
-            uint256(tokenYPrice); // Y in 1 USD
-
-        uint256 amountYinA = (amountYinUSD * (10 ** aDec)) / amountXinUSD; // amount of Y in 1 X token
-
-        return (amountYinA * amount) / (10 ** aDec);
+        // Calculate quoteAmount with better precision if it doesn't overflow when multiplied by itself
+        if (sqrtRatioX96 <= type(uint128).max) {
+            uint256 ratioX192 = uint256(sqrtRatioX96) * sqrtRatioX96;
+            quoteAmount = baseToken < quoteToken
+                ? IFullMathLib(fullMath).mulDiv(ratioX192, baseAmount, 1 << 192)
+                : IFullMathLib(fullMath).mulDiv(1 << 192, baseAmount, ratioX192);
+        } else {
+            uint256 ratioX128 = IFullMathLib(fullMath).mulDiv(sqrtRatioX96, sqrtRatioX96, 1 << 64);
+            quoteAmount = baseToken < quoteToken
+                ? IFullMathLib(fullMath).mulDiv(ratioX128, baseAmount, 1 << 128)
+                : IFullMathLib(fullMath).mulDiv(1 << 128, baseAmount, ratioX128);
+        }
     }
 
 

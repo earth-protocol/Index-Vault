@@ -232,13 +232,7 @@ contract EarthT is Test{
      }
 
       function test_Rebalance() public {
-        vm.startPrank(userWeth);
-        uint256 depo = 300e17;
-        bool isW = IStrategy(strat).paused();
-        console.log(isW);
-        IERC20(weth).approve(vault,10000e18);
-        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo*2,userWeth);
-        uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        test_deposit();
         vm.startPrank(protocol);
         EarthIndex(strat).rebalance();
         vm.stopPrank();
@@ -251,6 +245,33 @@ contract EarthT is Test{
         bool isW = IStrategy(strat).paused();
         console.log(isW);
         vm.stopPrank();
+     }
+
+     function test_DepositAfterPanic() public {
+         test_deposit();
+        vm.startPrank(protocol);
+        EarthIndex(strat).panic();
+        bool isW = IStrategy(strat).paused();
+        console.log(isW);
+        vm.stopPrank();
+        vm.expectRevert("Paused");
+        test_deposit();
+     }
+
+     function test_UnPause() public {
+         test_deposit();
+        vm.startPrank(protocol);
+        EarthIndex(strat).panic();
+        bool isW = IStrategy(strat).paused();
+        console.log(isW);
+        vm.stopPrank();
+
+        vm.startPrank(protocol);
+        EarthIndex(strat).unpause();
+        isW = IStrategy(strat).paused();
+        console.log(isW);
+        vm.stopPrank();
+        test_deposit();
      }
 
     //   function test_retireStrat() public {

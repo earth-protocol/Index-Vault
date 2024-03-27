@@ -26,18 +26,18 @@ contract EarthT is Test{
     address public depositToken=0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;//arb usdc
     address public weth=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; //arb weth
     address public tokenA=0x5979D7b546E38E414F7E9822514be443A4800529; //arb wstEth
-    uint256 public tokenAallo=30;
+    uint256 public tokenAallo=10;
     address public tokenB=0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a;//arb gmx
     uint256 public tokenBallo=20;
     address public tokenC=0x912CE59144191C1204E64559FE8253a0e49E6548;//arb arb
-    uint256 public tokenCallo=15;
+    uint256 public tokenCallo=20;
     address public tokenD=0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8;//arb pendle
-    uint256 public tokenDallo=15;
-    address public tokenE=0x18c11FD286C5EC11c3b683Caa813B77f5163A122;//arb gns
-    uint256 public tokenEallo=10;
-    address public tokenF=0x9623063377AD1B27544C965cCd7342f7EA7e88C7;//arb grt
-    uint256 public tokenFallo=10;
-    uint256 public minDeposit=1e14;
+    uint256 public tokenDallo=20;
+    address public tokenE=0x3d9907F9a368ad0a51Be60f7Da3b97cf940982D8;//arb  grail
+    uint256 public tokenEallo=15;
+    address public tokenF=0x3082CC23568eA640225c2467653dB90e9250AaA0;//arb  rdnt
+    uint256 public tokenFallo=15;
+    uint256 public minDeposit=1e15;
     
     address mathLib=0x19F51834817708F2da9Ac7D0cc3eAFF0b6Ed17D7;
     address tickLib=0x642e8455F280d1F5f252DFFE0A264810A80A7DF7;
@@ -47,7 +47,7 @@ contract EarthT is Test{
     uint24 public tokenBFees=3000;
     uint24 public tokenCFees = 500;
     uint24 public tokenDFees = 3000;
-    uint24 public tokenEFees = 3000;
+    uint24 public tokenEFees = 10000;
     uint24 public tokenFFees = 3000;
 
 
@@ -168,6 +168,30 @@ contract EarthT is Test{
         vm.stopPrank();
      }
 
+    function test_conversions() public {
+        uint256 bala = EarthIndex(strat).tokenAToTokenBConversion(tokenD,weth,tokenDFees,5e15);
+        uint256 balab = EarthIndex(strat).tokenAToTokenBConversion(weth,tokenD,tokenDFees,bala);
+        console.log(bala);
+        console.log(balab);
+        bala = EarthIndex(strat).tokenAToTokenBConversion(tokenE,weth,tokenEFees,5e15);
+        balab = EarthIndex(strat).tokenAToTokenBConversion(weth,tokenE,tokenEFees,bala);
+        console.log(bala);
+        console.log(balab);
+        bala = EarthIndex(strat).tokenAToTokenBConversion(tokenF,weth,tokenFFees,5e15);
+        balab = EarthIndex(strat).tokenAToTokenBConversion(weth,tokenF,tokenFFees,bala);
+        console.log(bala);
+        console.log(balab);
+    }
+
+     
+     function deposit() public {
+        vm.startPrank(userWeth);
+        uint256 depo = 1e18;
+        IERC20(weth).approve(vault,depo);
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,userWeth);
+        vm.stopPrank();
+     }
+
      function test_deposit(uint256 _amount) public {
         vm.assume(_amount >= 1e18 && _amount < 10e18);
         vm.startPrank(userWeth);
@@ -187,24 +211,28 @@ contract EarthT is Test{
 
 
      function test_withdraw() public {
+        deposit();
         vm.startPrank(userWeth);
-        uint256 depo = 1e18;
+        uint256 depo = 2e18;
         bool isW = IStrategy(strat).paused();
         console.log(isW);
         IERC20(weth).approve(vault,10000e18);
-        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo*2,userWeth);
+        emit log_named_uint ("user balanc before deposit",IERC20(weth).balanceOf(userWeth));
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,userWeth);
         uint256 dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
         console.log("totalAsset after deposit",dp);
         console.log("balance is",IERC20(vault).balanceOf(user));
          depo =RiveraAutoCompoundingVaultV2Public(vault).maxWithdraw(userWeth);
-        RiveraAutoCompoundingVaultV2Public(vault).withdraw((depo/2),userWeth,userWeth);
+        RiveraAutoCompoundingVaultV2Public(vault).withdraw(1e18,userWeth,userWeth);
         dp = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        emit log_named_uint ("user balanc adter withdraw",IERC20(weth).balanceOf(userWeth));
         emit log_named_uint ("totalAsset after withdraw",dp);
         emit log_named_uint("balance is",IERC20(vault).balanceOf(userWeth));
         emit log_named_uint ("totalAsset ",EarthIndex(strat).balanceOf());
         emit log_named_uint ("totalAsset in A",EarthIndex(strat).balanceOfA());
         emit log_named_uint ("totalAsset in B",EarthIndex(strat).balanceOfB());
         emit log_named_uint ("totalAsset in C",EarthIndex(strat).balanceOfC());
+        emit log_named_uint ("owner balanc ",IERC20(weth).balanceOf(0x69605b7A74D967a3DA33A20c1b94031BC6cAF27c));
         vm.stopPrank();
      }
 
@@ -236,6 +264,8 @@ contract EarthT is Test{
         vm.startPrank(protocol);
         EarthIndex(strat).rebalance();
         vm.stopPrank();
+        console.log("owner is",EarthIndex(strat).owner());
+        console.log("manager is",EarthIndex(strat).manager());
      }
 
      function test_Panic() public {
@@ -292,4 +322,4 @@ contract EarthT is Test{
 
 
 
-//forge test --match-path test/strategies/staking/Earth.t.sol --fork-url https://1rpc.io/arb -vvvv
+//forge test --match-path test/strategies/staking/Earth.t.sol --fork-url https://arbitrum.llamarpc.com -vvvv

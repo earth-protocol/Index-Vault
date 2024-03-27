@@ -9,9 +9,10 @@ import "../src/strategies/common/interfaces/IStrategy.sol";
 
 
 contract Deposit is Script{
-    address vault = 0x7481078908B7B5E8d2cb4b183969A2BF3E0F2Fc1;
-    address token = 0xBC3FCA55ABA295605830E25c7F5Ba9C58Ce0167C;
-    address strat=0x7CF1A7ff462e82634Fca2Fd07042eE982Ead2c61;
+    address vault = 0x33e47Fe37FeF6AB1d83e54AAD6c8D01C048171E1;
+    address token = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    address strat=0x8a1b62c438B7b1d73A7a323C6b685fEc021610aC;
+    address public userWeth = 0xb835AF52422a14C917d4b37b36c9a73d24770261;
 
     function setUp() public {}
 
@@ -20,14 +21,22 @@ contract Deposit is Script{
         address acc = vm.addr(privateKey);
         console.log("Account", acc);
 
-        vm.startBroadcast(privateKey);
-        
-        uint256 depo = 10e6;
-        IERC20(token).approve(vault,10000e6);
+        // vm.startBroadcast(privateKey);
+        vm.startPrank(userWeth);
+        uint256 depo = 1e18;
+        IERC20(token).approve(vault,10000e18);
         bool isW = IStrategy(strat).paused();
         console.log(isW);
-        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,acc);
-        console.log("balance is",IERC20(vault).balanceOf(acc));
+        RiveraAutoCompoundingVaultV2Public(vault).deposit(depo,userWeth);
+        console.log("balance is",IERC20(vault).balanceOf(userWeth));
+        console.log("total asset is",RiveraAutoCompoundingVaultV2Public(vault).totalAssets());
+
+        depo =RiveraAutoCompoundingVaultV2Public(vault).maxWithdraw(userWeth);
+        RiveraAutoCompoundingVaultV2Public(vault).withdraw((depo*99/100),acc,userWeth);
+        uint256 tB = RiveraAutoCompoundingVaultV2Public(vault).totalAssets();
+        console.log("total Assets",tB);
+        console.log("balance is in vault",IERC20(vault).balanceOf(userWeth));
+        console.log("balance is of user",IERC20(token).balanceOf(acc));
         
     }
 

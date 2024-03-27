@@ -187,7 +187,9 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
             _amount = balanceD;
         }
         }
-        IERC20(depositToken).safeTransfer(vault,_amount);
+        uint256 wFees = (_amount * withdrawFee)/withdrawFeeDecimals;
+        IERC20(depositToken).safeTransfer(owner(),wFees);
+        IERC20(depositToken).safeTransfer(vault,_amount-wFees);
     }
 
     function swapAll() internal{
@@ -207,12 +209,12 @@ contract EarthIndex is AbstractStrategy,ReentrancyGuard{
 
 
     function withdrawRatio(uint256 _amount) internal {
-      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,tokenA,tokenAFees,(_amount*(balanceOfA() * 100/balanceOf()))/100);
-      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,tokenB,tokenBFees,(_amount*(balanceOfB()* 100/balanceOf()))/100);
-      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,tokenC,tokenCFees,(_amount*(balanceOfC()* 100/balanceOf()))/100);
-      uint256 withdrawTokenD =tokenAToTokenBConversion(depositToken,tokenD,tokenDFees,(_amount*(balanceOfD()* 100/balanceOf()))/100);
-      uint256 withdrawTokenE =tokenAToTokenBConversion(depositToken,tokenE,tokenEFees,(_amount*(balanceOfE()* 100/balanceOf()))/100);
-      uint256 withdrawTokenF =tokenAToTokenBConversion(depositToken,tokenF,tokenFFees,(_amount*(balanceOfF()* 100/balanceOf()))/100);
+      uint256 withdrawTokenA =tokenAToTokenBConversion(depositToken,tokenA,tokenAFees,(_amount*allocations[tokenA])/100);
+      uint256 withdrawTokenB =tokenAToTokenBConversion(depositToken,tokenB,tokenBFees,(_amount*allocations[tokenB])/100);
+      uint256 withdrawTokenC =tokenAToTokenBConversion(depositToken,tokenC,tokenCFees,(_amount*allocations[tokenC])/100);
+      uint256 withdrawTokenD =tokenAToTokenBConversion(depositToken,tokenD,tokenDFees,(_amount*allocations[tokenD])/100);
+      uint256 withdrawTokenE =tokenAToTokenBConversion(depositToken,tokenE,tokenEFees,(_amount*allocations[tokenE])/100);
+      uint256 withdrawTokenF =tokenAToTokenBConversion(depositToken,tokenF,tokenFFees,(_amount*allocations[tokenF])/100);
       _swapV3In(tokenA,depositToken,withdrawTokenA,tokenAFees);
       _swapV3In(tokenB,depositToken,withdrawTokenB,tokenBFees);
       _swapV3In(tokenC,depositToken,withdrawTokenC,tokenCFees);
